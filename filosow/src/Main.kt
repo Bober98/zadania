@@ -1,5 +1,6 @@
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.random.Random
 
 // Класс, представляющий философа
@@ -14,20 +15,16 @@ class Philosopher(private val id: Int, private val leftFork: Mutex, private val 
 
     // Функция для имитации обеда
     suspend fun eat() {
-        // Захватываем вилки поочередно
+        // Захватываем вилки поочередно с использованием Mutex
         withContext(Dispatchers.Default) {
-            leftFork.lock()
-            rightFork.lock()
+            leftFork.withLock {
+                rightFork.withLock {
+                    println("Философ $id обедает.")
+                    // Добавляем случайную задержку для имитации обеда
+                    delay(Random.nextLong(100, 500))
+                }
+            }
         }
-
-        println("Философ $id обедает.")
-
-        // Отпускаем вилки после обеда
-        leftFork.unlock()
-        rightFork.unlock()
-
-        // Добавляем случайную задержку для имитации обеда
-        delay(Random.nextLong(100, 500))
     }
 }
 
@@ -60,3 +57,4 @@ suspend fun main() {
     jobs.forEach { it.cancelAndJoin() }
 }
 
+ 
