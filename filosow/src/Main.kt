@@ -1,48 +1,51 @@
 import kotlinx.coroutines.*
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.thread
 import kotlin.random.Random
 
 // Класс, представляющий философа
-class Philosopher(private val id: Int, private val leftFork: Mutex, private val rightFork: Mutex) {
+class Philosopher(private val id: Int, private val leftFork: ReentrantLock, private val rightFork: ReentrantLock) {
 
     // Функция для имитации размышления
     suspend fun think() {
         println("Философ $id размышляет.")
-        // Добавляем случайную задержку для имитации размышления
+        // Имитация времени размышления
         delay(Random.nextLong(100, 500))
     }
 
     // Функция для имитации обеда
     suspend fun eat() {
-        // Захватываем вилки поочередно с использованием Mutex
+        // Захватываем вилки поочередно
         withContext(Dispatchers.Default) {
-            leftFork.withLock {
-                rightFork.withLock {
-                    println("Философ $id обедает.")
-                    // Добавляем случайную задержку для имитации обеда
-                    delay(Random.nextLong(100, 500))
-                }
-            }
+            leftFork.lock()
+            rightFork.lock()
         }
+
+        println("Философ $id обедает.")
+
+        // Отпускаем вилки после обеда
+        leftFork.unlock()
+        rightFork.unlock()
+
+        // Имитация времени обеда
+        delay(Random.nextLong(100, 500))
     }
 }
 
 suspend fun main() {
-    // Количество философов и вилок
+    // Количество философов
     val numPhilosophers = 5
-    // Создаем список вилок с использованием Mutex для синхронизации доступа
-    val forks = List(numPhilosophers) { Mutex() }
+    // Создаем список вилок
+    val forks = List(numPhilosophers) { ReentrantLock() }
 
-    // Создаем список философов, присваивая каждому пару вилок
+    // Создаем список философов
     val philosophers = List(numPhilosophers) {
         Philosopher(it + 1, forks[it], forks[(it + 1) % numPhilosophers])
     }
 
-    // Создаем корутины для каждого философа
+    // Запускаем корутины для каждого философа
     val jobs = philosophers.map {
         GlobalScope.launch {
-            // Философ поочередно размышляет и обедает в бесконечном цикле
             while (isActive) {
                 it.think()
                 it.eat()
@@ -50,10 +53,10 @@ suspend fun main() {
         }
     }
 
-    // Пауза для имитации работы программы
+    // Ждем некоторое время
     delay(5000)
 
-    // Останавливаем и ждем завершения всех корутин
+    // Отменяем корутины (завершаем работу философов)
     jobs.forEach { it.cancelAndJoin() }
 }
 
