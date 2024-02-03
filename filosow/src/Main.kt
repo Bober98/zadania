@@ -1,63 +1,46 @@
-import kotlinx.coroutines.*
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.thread
 import kotlin.random.Random
 
-// Класс, представляющий философа
-class Philosopher(private val id: Int, private val leftFork: ReentrantLock, private val rightFork: ReentrantLock) {
+class Philosopher(private val id: Int, private val leftFork: ReentrantLock, private val rightFork: ReentrantLock) : Thread() {
 
-    // Функция для имитации размышления
-    suspend fun think() {
-        println("Философ $id размышляет.")
-        // Имитация времени размышления
-        delay(Random.nextLong(100, 500))
+    override fun run() {
+        while (true) {
+            think()
+            eat()
+        }
     }
 
-    // Функция для имитации обеда
-    suspend fun eat() {
-        // Захватываем вилки поочередно
-        withContext(Dispatchers.Default) {
-            leftFork.lock()
-            rightFork.lock()
-        }
+    private fun think() {
+        println("Философ $id размышляет.")
+        Thread.sleep(Random.nextLong(100, 500))
+    }
+
+    private fun eat() {
+        leftFork.lock()
+        rightFork.lock()
 
         println("Философ $id обедает.")
 
-        // Отпускаем вилки после обеда
         leftFork.unlock()
         rightFork.unlock()
 
-        // Имитация времени обеда
-        delay(Random.nextLong(100, 500))
+        Thread.sleep(Random.nextLong(100, 500))
     }
 }
 
-suspend fun main() {
-    // Количество философов
+fun main() {
     val numPhilosophers = 5
-    // Создаем список вилок
     val forks = List(numPhilosophers) { ReentrantLock() }
 
-    // Создаем список философов
     val philosophers = List(numPhilosophers) {
         Philosopher(it + 1, forks[it], forks[(it + 1) % numPhilosophers])
     }
 
-    // Запускаем корутины для каждого философа
-    val jobs = philosophers.map {
-        GlobalScope.launch {
-            while (isActive) {
-                it.think()
-                it.eat()
-            }
-        }
-    }
+    philosophers.shuffled().forEach { it.start() }
 
-    // Ждем некоторое время
-    delay(5000)
+    Thread.sleep(5000)
 
-    // Отменяем корутины (завершаем работу философов)
-    jobs.forEach { it.cancelAndJoin() }
+    philosophers.forEach { it.interrupt() }
+    philosophers.forEach { it.join() }
 }
-
- 
