@@ -12,6 +12,7 @@ class PizzaCity(
     private val sauceSales: MutableMap<String, Int> = mutableMapOf(),
     private var totalRevenue: Double = 0.0
 ) {
+    // Функция для продажи пиццы с учетом скидок
     fun sellPizzaWithDiscount(pizzaType: String, discount: Double) {
         totalChecksShown++
         totalDiscounts += discount
@@ -19,30 +20,37 @@ class PizzaCity(
         pizzaSales[pizzaType] = pizzaSales.getOrDefault(pizzaType, 0) + 1
     }
 
+    // Функция для продажи кофе
     fun sellCoffee(price: Double) {
         totalCoffeesSold++
         totalCoffeeRevenue += price
     }
 
+    // Функция для предложения кофе и скидки
     fun offerCoffeeAndDiscount(checkPhoto: Boolean, pizzaType: String, sauceType: String?, saucePrice: Double?) {
+        // Учитываем скидку за фото чека
         if (checkPhoto) {
             checkPhotoCount++
-            totalDiscounts += 5.0 // Пример скидки за фото чека
+            totalDiscounts += 5.0
         }
 
+        // Учитываем покупку кофе
         if (Random.nextBoolean()) {
             coffeePurchaseCount++
-            totalCoffeeRevenue += 2.0 // Пример выручки за кофе
+            totalCoffeeRevenue += 2.0
         }
 
+        // Учитываем продажу пиццы с учетом скидки
+        sellPizzaWithDiscount(pizzaType, 0.0)
+
+        // Учитываем продажу соуса (если предлагается)
         if (sauceType != null && saucePrice != null) {
             sauceSales[sauceType] = sauceSales.getOrDefault(sauceType, 0) + 1
             totalRevenue += saucePrice
         }
-
-        sellPizzaWithDiscount(pizzaType, 0.0)
     }
 
+    // Функция для вывода статистики
     fun showStatistics() {
         println("Статистика для $cityName:")
         println("Количество показанных чеков: $totalChecksShown")
@@ -65,6 +73,7 @@ class PizzaCity(
         println("\nОбщая выручка: $totalRevenue")
     }
 
+    // Вспомогательная функция для вычисления процентов
     private fun percentage(value: Int, total: Int): Double {
         return if (total == 0) 0.0 else (value.toDouble() / total.toDouble()) * 100.0
     }
