@@ -1,76 +1,62 @@
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.locks.Lock
-import java.util.concurrent.locks.ReentrantLock
-
-// Класс, представляющий вилку
-class Fork(val id: Int) {
-    private val lock: Lock = ReentrantLock()
-
-    // Функция для взятия вилки
-    fun pickUp() {
-        lock.lock()
-    }
-
-    // Функция для положения вилки
-    fun putDown() {
-        lock.unlock()
-    }
-}
+import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlin.random.Random
 
 // Класс, представляющий философа
-class Philosopher(val id: Int, val leftFork: Fork, val rightFork: Fork, val isRunning: AtomicBoolean) : Thread() {
-    // Функция, выполняемая потоком философа
-    override fun run() {
-        while (isRunning.get()) {
-            think()
-            eat()
-        }
-    }
+class Philosopher(private val id: Int, private val leftFork: Mutex, private val rightFork: Mutex) {
 
     // Функция для имитации размышления
-    private fun think() {
+    suspend fun think() {
         println("Философ $id размышляет.")
-        // Добавьте задержку для имитации размышления
-        Thread.sleep(100)
+        // Добавляем случайную задержку для имитации размышления
+        delay(Random.nextLong(100, 500))
     }
 
     // Функция для имитации обеда
-    private fun eat() {
+    suspend fun eat() {
         // Захватываем вилки поочередно
-        leftFork.pickUp()
-        rightFork.pickUp()
+        withContext(Dispatchers.Default) {
+            leftFork.lock()
+            rightFork.lock()
+        }
 
         println("Философ $id обедает.")
-        // Добавьте задержку для имитации обеда
-        Thread.sleep(100)
 
         // Отпускаем вилки после обеда
-        leftFork.putDown()
-        rightFork.putDown()
+        leftFork.unlock()
+        rightFork.unlock()
+
+        // Добавляем случайную задержку для имитации обеда
+        delay(Random.nextLong(100, 500))
     }
 }
 
-fun main() {
+suspend fun main() {
     // Количество философов и вилок
-    val numOfPhilosophers = 5
-    // Создаем список вилок
-    val forks = List(numOfPhilosophers) { Fork(it) }
+    val numPhilosophers = 5
+    // Создаем список вилок с использованием Mutex для синхронизации доступа
+    val forks = List(numPhilosophers) { Mutex() }
 
-    // Используем AtomicBoolean для обеспечения видимости изменений в разных потоках
-    val isRunning = AtomicBoolean(true)
-
-    // Создаем список философов, присваивая каждому пару вилок и флаг завершения
-    val philosophers = List(numOfPhilosophers) {
-        Philosopher(it, forks[it], forks[(it + 1) % numOfPhilosophers], isRunning)
+    // Создаем список философов, присваивая каждому пару вилок
+    val philosophers = List(numPhilosophers) {
+        Philosopher(it + 1, forks[it], forks[(it + 1) % numPhilosophers])
     }
 
-    // Запускаем каждого философа в отдельном потоке
-    philosophers.forEach { it.start() }
+    // Создаем корутины для каждого философа
+    val jobs = philosophers.map {
+        GlobalScope.launch {
+            // Философ поочередно размышляет и обедает в бесконечном цикле
+            while (isActive) {
+                it.think()
+                it.eat()
+            }
+        }
+    }
 
-    // Ждем некоторое время, а затем устанавливаем флаг завершения
-    Thread.sleep(5000)
-    isRunning.set(false)
+    // Пауза для имитации работы программы
+    delay(5000)
 
-    // Ждем, пока все потоки философов завершатся
-    philosophers.forEach { it.join() }
+    // Останавливаем и ждем завершения всех корутин
+    jobs.forEach { it.cancelAndJoin() }
 }
+
