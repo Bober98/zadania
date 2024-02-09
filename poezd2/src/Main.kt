@@ -1,4 +1,5 @@
 import kotlin.random.Random
+import kotlin.math.min
 
 // Класс, представляющий поезд
 class Train(val direction: String) {
@@ -11,9 +12,13 @@ class Train(val direction: String) {
     }
 
     // Метод для продажи билетов в каждом вагоне
-    fun sellTickets() {
+    fun sellTickets(passengerCount: Int) {
+        var passengersLeft = passengerCount
         for (wagon in wagons) {
-            wagon.sellTickets()
+            val ticketsSold = min(passengersLeft, wagon.capacity - wagon.passengers) // Продаем только доступное количество билетов для данного вагона
+            wagon.sellTickets(ticketsSold)
+            passengersLeft -= ticketsSold
+            if (passengersLeft <= 0) break
         }
     }
 
@@ -34,16 +39,8 @@ class Wagon(val capacity: Int) {
         private set
 
     // Метод для продажи билетов в вагоне
-    fun sellTickets() {
-        // Генерируем случайное количество пассажиров в диапазоне от 5 до 201
-        passengers = Random.nextInt(5, minOf(202, capacity + 1))
-    }
-
-    // Метод для добавления пассажира в вагон
-    fun addPassenger() {
-        if (passengers < capacity) {
-            passengers++
-        }
+    fun sellTickets(ticketsSold: Int) {
+        passengers += ticketsSold
     }
 }
 
@@ -52,13 +49,10 @@ class TrainPlanner {
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {
-            // Список городов для создания направлений
             val cityList = listOf("Бийск", "Барнаул", "Новосибирск", "Томск", "Красноярск", "Иркутск", "Омск", "Кемерово", "Новокузнецк", "Курган", "Тюмень", "Челябинск", "Екатеринбург", "Пермь", "Оренбург")
             val random = Random(System.currentTimeMillis())
 
-            // Цикл работы программы
             while (true) {
-                // Запрос на создание нового поезда или завершение работы
                 print("Хотите ли вы закончить работу (EXIT) или составить поезд (нажмите Enter): ")
                 val userInput = readLine() ?: ""
 
@@ -66,26 +60,23 @@ class TrainPlanner {
                     break
                 }
 
-                // Создание случайного направления для поезда
                 val direction = createDirection(cityList, random)
                 val train = Train(direction)
 
                 println("Шаг 1: Создано направление - $direction")
 
-                // Продажа билетов для поезда
-                train.sellTickets()
-                println("Шаг 2: Продано билетов")
+                val ticketCount = Random.nextInt(5, 202) // Генерируем случайное количество проданных билетов
+                println("Шаг 2: Продано билетов ($ticketCount)")
 
-                // Формирование поезда с учетом проданных билетов и вместимости вагонов
-                for (wagon in train.wagons) {
-                    while (wagon.passengers < wagon.capacity) {
-                        wagon.addPassenger()
-                    }
+                val wagonCapacities = generateWagonCapacities(ticketCount, random)
+                for (capacity in wagonCapacities) {
+                    train.addWagon(capacity)
                 }
 
                 println("Шаг 3: Сформирован поезд")
 
-                // Отображение информации о поезде
+                train.sellTickets(ticketCount) // Продаем билеты
+
                 train.displayInfo()
                 println("Шаг 4: Отправлен поезд")
             }
@@ -99,6 +90,18 @@ class TrainPlanner {
                 end = cityList.random()
             }
             return "$start - $end"
+        }
+
+        // Метод для генерации вместимостей вагонов
+        private fun generateWagonCapacities(passengerCount: Int, random: Random): List<Int> {
+            val capacities = mutableListOf<Int>()
+            var passengersLeft = passengerCount
+            while (passengersLeft > 0) {
+                val capacity = min(passengersLeft, Random.nextInt(5, 26)) // Генерируем случайную вместимость вагона от 5 до 25 или оставшееся количество пассажиров, если оно меньше
+                capacities.add(capacity)
+                passengersLeft -= capacity
+            }
+            return capacities
         }
     }
 }
