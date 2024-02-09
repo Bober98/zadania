@@ -35,6 +35,7 @@ class Wagon(val capacity: Int) {
 
     // Метод для продажи билетов в вагоне
     fun sellTickets() {
+        // Генерируем случайное количество пассажиров в диапазоне от 5 до 201
         passengers = Random.nextInt(5, minOf(202, capacity + 1))
     }
 
@@ -51,10 +52,13 @@ class TrainPlanner {
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {
+            // Список городов для создания направлений
             val cityList = listOf("Бийск", "Барнаул", "Новосибирск", "Томск", "Красноярск", "Иркутск", "Омск", "Кемерово", "Новокузнецк", "Курган", "Тюмень", "Челябинск", "Екатеринбург", "Пермь", "Оренбург")
             val random = Random(System.currentTimeMillis())
 
+            // Цикл работы программы
             while (true) {
+                // Запрос на создание нового поезда или завершение работы
                 print("Хотите ли вы закончить работу (EXIT) или составить поезд (нажмите Enter): ")
                 val userInput = readLine() ?: ""
 
@@ -62,14 +66,17 @@ class TrainPlanner {
                     break
                 }
 
+                // Создание случайного направления для поезда
                 val direction = createDirection(cityList, random)
                 val train = Train(direction)
 
                 println("Шаг 1: Создано направление - $direction")
 
+                // Продажа билетов для поезда
                 train.sellTickets()
                 println("Шаг 2: Продано билетов")
 
+                // Формирование поезда с учетом проданных билетов и вместимости вагонов
                 for (wagon in train.wagons) {
                     while (wagon.passengers < wagon.capacity) {
                         wagon.addPassenger()
@@ -78,6 +85,7 @@ class TrainPlanner {
 
                 println("Шаг 3: Сформирован поезд")
 
+                // Отображение информации о поезде
                 train.displayInfo()
                 println("Шаг 4: Отправлен поезд")
             }
